@@ -48,84 +48,101 @@
 <body>
 
 <?php
-// Koneksi ke database
-$host = "localhost";
-$user = "remote_user";
-$password = "password123";
-$dbname = "db_cms-si";
-
-$conn = new mysqli($host, $user, $password, $dbname);
-if ($conn->connect_error) {
-    die("Koneksi gagal: " . $conn->connect_error);
-}
-
-// Query data form fields
-$sql = "SELECT field_id, label, type, length, mandatory, default_value, options, searchable 
-        FROM tb_form_fields ORDER BY ordering ASC";
-$result = $conn->query($sql);
-
-$formFields = [];
-
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $field = [
-            'field_id' => $row['field_id'],
-            'label' => $row['label'],
-            'type' => $row['type'],
-            'length' => $row['length'] ?? '',
-            'mandatory' => (bool)$row['mandatory'],
-        ];
-
-        if (!empty($row['default_value'])) {
-            $field['default'] = $row['default_value'];
-        }
-
-        if (!empty($row['options'])) {
-            $field['options'] = explode(',', $row['options']);
-        }
-
-        if (!empty($row['searchable'])) {
-            $field['searchable'] = (bool)$row['searchable'];
-        }
-
-        $formFields[] = $field;
-    }
-} else {
-    echo "Tidak ada field yang ditemukan.";
-}
-$conn->close();
+$formFields = [
+    [
+        'id' => 'namaBarang',
+        'label' => 'Nama Barang',
+        'type' => 'text',
+        'length' => 45,
+        'mandatory' => true
+    ],
+    [
+        'id' => 'spesifikasi',
+        'label' => 'Spesifikasi',
+        'type' => 'textarea',
+        'length' => 250,
+        'mandatory' => false
+    ],
+    [
+        'id' => 'pilihanCombo',
+        'label' => 'Combo',
+        'type' => 'select',
+        'options' => ['A', 'B', 'C'],
+        'default' => 'A',
+        'mandatory' => true,
+        'searchable' => true
+    ],
+    [
+        'id' => 'pilihanRadio',
+        'label' => 'Radio',
+        'type' => 'radio',
+        'options' => ['A', 'B'],
+        'default' => 'A',
+        'mandatory' => true
+    ],
+    [
+        'id' => 'setuju',
+        'label' => 'Ya, saya setuju',
+        'type' => 'checkbox',
+        'default' => true,
+        'mandatory' => true
+    ],
+    [
+        'id' => 'tanggalMulai',
+        'label' => 'Tanggal mulai',
+        'type' => 'datetime',
+        'mandatory' => true
+    ],
+    [
+        'id' => 'tanggalSelesai',
+        'label' => 'Tanggal selesai',
+        'type' => 'datetime',
+        'mandatory' => true
+    ],
+    [
+        'id' => 'tanggalSaja',
+        'label' => 'Tanggal',
+        'type' => 'dateonly',
+        'mandatory' => true
+    ],
+    [
+        'id' => 'jamSaja',
+        'label' => 'Jam',
+        'type' => 'timeonly',
+        'mandatory' => true
+    ]
+];
 
 echo '<form method="post" action="">';
 
 foreach ($formFields as $field) {
-    $id = $field['field_id'];
+    $id = $field['id'];
     $label = $field['label'];
     $type = $field['type'];
     $length = $field['length'] ?? '';
     $mandatory = !empty($field['mandatory']) ? 'required' : '';
     $default = $field['default'] ?? '';
     $searchable = $field['searchable'] ?? false;
-    $options = $field['options'] ?? [];
 
     echo '<div style="margin-bottom:15px;">';
 
     switch ($type) {
         case 'text':
-            echo '<label for="' . $id . '">' . ucfirst($label) . ':</label>';
+            echo '<label for="' . $label . '">' . ucfirst($label) . ':</label>';
             echo '<input type="text" name="' . $id . '" id="' . $id . '" maxlength="' . $length . '" ' . $mandatory . '>';
             break;
 
         case 'textarea':
-            echo '<label for="' . $id . '">' . ucfirst($label) . ':</label>';
+            echo '<label for="' . $label . '">' . ucfirst($label) . ':</label>';
             echo '<textarea name="' . $id . '" id="' . $id . '" maxlength="' . $length . '" ' . $mandatory . '></textarea>';
             break;
 
         case 'select':
-            echo '<label for="' . $id . '">' . ucfirst($label) . ':</label>';
+            echo '<label for="' . $label . '">' . ucfirst($label) . ':</label>';
             $selectClass = $searchable ? 'select2' : '';
             echo '<select name="' . $id . '" id="' . $id . '" class="' . $selectClass . '" ' . $mandatory . '>';
             echo '<option value="">-- Pilih --</option>';
-            foreach ($options as $option) {
+            foreach ($field['options'] as $option) {
                 $selected = ($option === $default) ? 'selected' : '';
                 echo '<option value="' . $option . '" ' . $selected . '>' . $option . '</option>';
             }
@@ -134,30 +151,31 @@ foreach ($formFields as $field) {
 
         case 'radio':
             echo '<label>' . ucfirst($label) . ':</label><br>';
-            foreach ($options as $option) {
+            foreach ($field['options'] as $option) {
                 $checked = ($option === $default) ? 'checked' : '';
                 echo '<input type="radio" name="' . $id . '" value="' . $option . '" ' . $checked . ' ' . $mandatory . '> ' . $option . '<br>';
             }
             break;
 
         case 'checkbox':
-            $checked = ($default == '1') ? 'checked' : '';
+            $label = $field['label'] ?? ucfirst($id);
+            $checked = ($default === true) ? 'checked' : '';
             echo '<input type="checkbox" name="' . $id . '" id="' . $id . '" value="1" ' . $checked . ' ' . $mandatory . '>';
-            echo '<label for="' . $id . '"> ' . $label . '</label>';
+            echo '<label for="' . $label . '"> ' . $label . '</label>';
             break;
 
         case 'datetime':
-            echo '<label for="' . $id . '">' . ucfirst(preg_replace('/([a-z])([A-Z])/', '$1 $2', $label)) . ':</label>';
+            echo '<label for="' . $label . '">' . ucfirst(preg_replace('/([a-z])([A-Z])/', '$1 $2', $label)) . ':</label>';
             echo '<input type="text" name="' . $id . '" id="' . $id . '" class="datetime" ' . $mandatory . '>';
             break;
 
         case 'dateonly':
-            echo '<label for="' . $id . '">' . ucfirst(preg_replace('/([a-z])([A-Z])/', '$1 $2', $label)) . ':</label>';
+            echo '<label for="' . $label . '">' . ucfirst(preg_replace('/([a-z])([A-Z])/', '$1 $2', $label)) . ':</label>';
             echo '<input type="text" name="' . $id . '" id="' . $id . '" class="dateonly" ' . $mandatory . '>';
             break;
 
         case 'timeonly':
-            echo '<label for="' . $id . '">' . ucfirst(preg_replace('/([a-z])([A-Z])/', '$1 $2', $label)) . ':</label>';
+            echo '<label for="' . $label . '">' . ucfirst(preg_replace('/([a-z])([A-Z])/', '$1 $2', $label)) . ':</label>';
             echo '<input type="text" name="' . $id . '" id="' . $id . '" class="timeonly" ' . $mandatory . '>';
             break;
     }
